@@ -4,49 +4,46 @@ import os
 
 repeticoes = 5
 
-class Grafo():
-    def __init__(self, vertices):
-        self.num_vertices = vertices
-        self.grafo = [[0 for coluna in range(vertices)] for linha in range(vertices)]
+def dijkstra(matriz_adj, inicio, fim):
+    n = len(matriz_adj)
+    distancias = [sys.maxsize] * n
+    distancias[inicio] = 0
+    visitados = [False] * n
+    for _ in range(n):
+        u = -1
+        for i in range(n):
+            if not visitados[i] and (u == -1 or distancias[i] < distancias[u]):
+                u = i
+        if distancias[u] == sys.maxsize:
+            break
+        visitados[u] = True
+        for v in range(n):
+            if matriz_adj[u][v] > 0 and not visitados[v]:
+                nova_distancia = distancias[u] + matriz_adj[u][v]
+                if nova_distancia < distancias[v]:
+                    distancias[v] = nova_distancia
+    return distancias[fim]
 
-    def imprimir_solucao(self, distancias):
-        print("Distânica:")
-        for no in range(self.num_vertices):
-            print(no, "\t", distancias[no])
-
-    def distancia_minima(self, distancias, conjunto_spt):
-        min_valor = sys.maxsize
-        for v in range(self.num_vertices):
-            if distancias[v] < min_valor and not conjunto_spt[v]:
-                min_valor = distancias[v]
-                indice_minimo = v
-        return indice_minimo
-
-    def dijkstra(self, origem):
-        distancias = [sys.maxsize] * self.num_vertices
-        distancias[origem] = 0
-        conjunto_spt = [False] * self.num_vertices
-        for _ in range(self.num_vertices):
-            atual = self.distancia_minima(distancias, conjunto_spt)
-            conjunto_spt[atual] = True
-            for vertice in range(self.num_vertices):
-                if self.grafo[atual][vertice] > 0 and not conjunto_spt[vertice] and distancias[vertice] > distancias[atual] + self.grafo[atual][vertice]:
-                    distancias[vertice] = distancias[atual] + self.grafo[atual][vertice]
-
-with open("Saida/Dijkstra.csv", "w", encoding='utf-8') as output:
-    arquivos = [arq for arq in os.listdir("Entradas") if arq.endswith(".txt")]
-    output.write("Arquivo;TempoMedio;\n")
+with open("Saida/Dijkstra.csv", "w", encoding='utf-8') as saida:
+    arquivos = [arq for arq in os.listdir('Entradas') if arq.endswith('.txt')]
+    saida.write("Arquivo;MediaTempo;MenorDistancia;\n")
     for arquivo in arquivos:
         with open(f'Entradas/{arquivo}', 'r') as f:
-            num_vertices = int(f.readline())
-            matriz = [[int(num) for num in line.split()] for line in f]
-        grafo = Grafo(num_vertices)
-        grafo.grafo = matriz
-        tempo = 0
-        for execucao in range(repeticoes):
-            inicio = time.perf_counter()
-            for vertice in range(num_vertices):
-                grafo.dijkstra(vertice)
-            fim = time.perf_counter()
-            tempo += fim - inicio
-        output.write(f"{arquivo};{tempo/repeticoes};\n")
+            V = int(f.readline())
+            matriz_adj = [[int(num) for num in line.split()] for line in f]
+            # Substitui 0 por infinito, exceto na diagonal
+            for x, row in enumerate(matriz_adj):
+                for y, elem in enumerate(row):
+                    if x != y and elem == 0:
+                        matriz_adj[x][y] = sys.maxsize
+            menor_dist = 0
+            media_tempo = 0
+            for _ in range(repeticoes):
+                inicio = time.time()
+                menor_dist = dijkstra(matriz_adj, 0, V-1)
+                fim = time.time()
+                media_tempo += fim - inicio
+            media_tempo /= repeticoes
+            media_tempo *= 1000  # Converte de segundos para milissegundos
+            print(f"A menor distância do vértice 0 até o vértice {V-1} no dataset {arquivo} é: {menor_dist}")
+            saida.write(f"{arquivo};{media_tempo};{menor_dist}\n")
